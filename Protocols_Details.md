@@ -408,6 +408,9 @@ CH1|CH2|CH3|CH4|CH5 |CH6 |CH7 |CH8 |CH9 |CH10|CH11|CH12|CH13|CH14 |CH15 |CH16
 ### Sub_protocol CABELL_V3_TELEMETRY - *1*
 4 to 16 channels with telemetry (RSSI, V1, V2). V1 & V2 can be used to return any analog voltage between 0 and 5 volts, so can be used for battery voltage or any other sensor that provides an analog voltage.
 
+### Sub_protocol CABELL_V3_BIND_FALESAFE_NOPULSE - *5*
+This sub-protocol is only used during binding.  If this is selected during the bind, then the RX uses No Pulses as the failsafe action.  During failsafe, the RX puts out no signal, this applies to all output protocols, even those that have a failsafe flag like SBUS.
+
 ### Sub_protocol CABELL_SET_FAIL_SAFE - *6*
 Stores failsafe values in the RX.  The channel values are set when the sub-protocol is changed to 6, so hold sticks in place as the sub-protocol is changed.
 

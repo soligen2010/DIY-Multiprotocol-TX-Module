@@ -57,6 +57,7 @@ typedef struct
          setFailSafe            = 2,
          normalWithTelemetry    = 3,
          telemetryResponse      = 4,
+         bindFalesafeNoPulse    = 5,
          unBind                 = 127
    } RxMode;
    uint8_t reserved = 0;
@@ -65,7 +66,7 @@ typedef struct
                            *   mask 0x30>>4 : Receiver output mode
                            *                  0 (00) = Single PPM on individual pins for each channel 
                            *                  1 (01) = SUM PPM on channel 1 pin
-                           *                  2 (10) = Future use.  Reserved for SBUS output
+                           *                  2 (10) = SBUS output
                            *                  3 (11) = Unused
                            *   mask 0x40>>6   Contains max power override flag for Multi-protocol TX module. Also sent to RX
                            *   mask 0x80>>7   Unused 
@@ -174,7 +175,10 @@ static void __attribute__((unused)) CABELL_send_packet(uint8_t bindMode)
 		else
 		{
 			if (bindMode)
-				TxPacket.RxMode = CABELL_RxTxPacket_t::bind;        
+				if (sub_protocol == CABELL_V3_BIND_FALESAFE_NOPULSE)
+					TxPacket.RxMode = CABELL_RxTxPacket_t::bindFalesafeNoPulse;        
+				else
+					TxPacket.RxMode = CABELL_RxTxPacket_t::bind;        
 			else
 			{
 				switch (sub_protocol)
