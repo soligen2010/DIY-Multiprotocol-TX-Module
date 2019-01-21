@@ -245,6 +245,7 @@ static void __attribute__((unused)) CABELL_send_packet(uint8_t bindMode)
 
 	// Set channel for next transmission
 	rf_ch_num = CABELL_getNextChannel (hopping_frequency,CABELL_RADIO_CHANNELS, rf_ch_num);
+  TxPacket.reserved &= rf_ch_num;
 	NRF24L01_WriteReg(NRF24L01_05_RF_CH,rf_ch_num); 
 
 	//NRF24L01_FlushTx();   //just in case things got hung up
