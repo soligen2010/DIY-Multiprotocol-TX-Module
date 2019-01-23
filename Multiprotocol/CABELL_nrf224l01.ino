@@ -47,11 +47,12 @@ Multiprotocol is distributed in the hope that it will be useful,
 #define CABELL_OPTION_MASK_RECIEVER_OUTPUT_MODE		0x30
 #define CABELL_OPTION_SHIFT_RECIEVER_OUTPUT_MODE	4
 #define CABELL_OPTION_MASK_MAX_POWER_OVERRIDE		0x40
+#define CABELL_RESERVED_MASK_CHANNEL    0x3F
 
 typedef struct
 {
    enum RxMode_t : uint8_t
-   {   // Note bit 8 is used to indicate if the packet is the first of 2 on the channel.  Mask out this bit before using the enum
+   {   
          normal                 = 0,
          bind                   = 1,
          setFailSafe            = 2,
@@ -60,7 +61,8 @@ typedef struct
          bindFalesafeNoPulse    = 5,
          unBind                 = 127
    } RxMode;
-   uint8_t reserved = 0;
+   uint8_t reserved = 0;  /* Contains the channel number that the packet was sent on in bits 0-5 
+                          */
    uint8_t option;
                           /*   mask 0x0F    : Channel reduction.  The number of channels to not send (subtracted from the 16 max channels) at least 4 are always sent
                            *   mask 0x30>>4 : Receiver output mode
@@ -194,8 +196,15 @@ static void __attribute__((unused)) CABELL_send_packet(uint8_t bindMode)
 		}
 		TxPacket.option = (bindMode) ? (option & (~CABELL_OPTION_MASK_CHANNEL_REDUCTION)) : option;		//remove channel reduction if in bind mode
 	}
-	TxPacket.reserved = 0;
-	TxPacket.modelNum = RX_num;
+
+  TxPacket.reserved = 0;
+
+  // Set channel for next transmission
+  rf_ch_num = CABELL_getNextChannel (hopping_frequency,CABELL_RADIO_CHANNELS, rf_ch_num);
+  TxPacket.reserved |= rf_ch_num & CABELL_RESERVED_MASK_CHANNEL;
+
+  TxPacket.modelNum = RX_num;
+
 	uint16_t checkSum = TxPacket.modelNum + TxPacket.option + TxPacket.RxMode  + TxPacket.reserved;		// Start Calculate checksum
 
 	int adjusted_x;
@@ -247,18 +256,9 @@ static void __attribute__((unused)) CABELL_send_packet(uint8_t bindMode)
 	TxPacket.checkSum_MSB = checkSum >> 8;
 	TxPacket.checkSum_LSB = checkSum & 0x00FF;
 
-	// Set channel for next transmission
-	rf_ch_num = CABELL_getNextChannel (hopping_frequency,CABELL_RADIO_CHANNELS, rf_ch_num);
-  TxPacket.reserved &= rf_ch_num;
 	NRF24L01_WriteReg(NRF24L01_05_RF_CH,rf_ch_num); 
 
-	//NRF24L01_FlushTx();   //just in case things got hung up
-	//NRF24L01_WriteReg(NRF24L01_07_STATUS, 0x70);
-
-	uint8_t* p = reinterpret_cast<uint8_t*>(&TxPacket.RxMode);
-	*p &= 0x7F;                  // Make sure 8th bit is clear
-	*p |= (packet_count++)<<7;   // This causes the 8th bit of the first byte to toggle with each xmit so consecutive payloads are not identical.
-	// This is a work around for a reported bug in clone NRF24L01 chips that mis-took this case for a re-transmit of the same packet.
+	packet_count++;
 
 	CABELL_SetPower();
 	NRF24L01_WritePayload((uint8_t*)&TxPacket, packetSize);
